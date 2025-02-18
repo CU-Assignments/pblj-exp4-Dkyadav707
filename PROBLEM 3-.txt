@@ -1,0 +1,73 @@
+PROBLEM 3-
+Develop a ticket booking system with synchronized threads to ensure no double booking of seats. Use thread priorities to simulate VIP bookings being processed first.
+
+CODE-
+
+import java.util.*;
+
+class TicketBookingSystem {
+    private static final int TOTAL_SEATS = 10;
+    private final boolean[] seats = new boolean[TOTAL_SEATS];
+    
+    public synchronized boolean bookSeat(int seatNumber, String passenger) {
+        if (seatNumber < 0 || seatNumber >= TOTAL_SEATS) {
+            System.out.println(passenger + " - Invalid seat number!");
+            return false;
+        }
+        if (!seats[seatNumber]) {
+            seats[seatNumber] = true;
+            System.out.println(passenger + " successfully booked seat " + seatNumber);
+            return true;
+        } else {
+            System.out.println(passenger + " - Seat " + seatNumber + " is already booked!");
+            return false;
+        }
+    }
+}
+
+class Passenger extends Thread {
+    private TicketBookingSystem system;
+    private int seatNumber;
+    private String passengerName;
+
+    public Passenger(TicketBookingSystem system, int seatNumber, String passengerName, int priority) {
+        this.system = system;
+        this.seatNumber = seatNumber;
+        this.passengerName = passengerName;
+        setPriority(priority);
+    }
+
+    @Override
+    public void run() {
+        system.bookSeat(seatNumber, passengerName);
+    }
+}
+
+public class TicketBookingApp {
+    public static void main(String[] args) {
+        TicketBookingSystem system = new TicketBookingSystem();
+        List<Passenger> passengers = new ArrayList<>();
+        
+        // Creating passengers with different priorities
+        passengers.add(new Passenger(system, 2, "VIP_John", Thread.MAX_PRIORITY));
+        passengers.add(new Passenger(system, 3, "Regular_Alice", Thread.NORM_PRIORITY));
+        passengers.add(new Passenger(system, 2, "Regular_Bob", Thread.NORM_PRIORITY));
+        passengers.add(new Passenger(system, 5, "VIP_Susan", Thread.MAX_PRIORITY));
+        passengers.add(new Passenger(system, 1, "Regular_Mike", Thread.MIN_PRIORITY));
+
+        // Shuffle and start the threads
+        Collections.shuffle(passengers);
+        for (Passenger p : passengers) {
+            p.start();
+        }
+
+        // Wait for all threads to finish
+        for (Passenger p : passengers) {
+            try {
+                p.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
